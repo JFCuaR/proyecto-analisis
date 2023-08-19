@@ -1,0 +1,1650 @@
+/* Zepto v1.2.0 - formulario ajax de evento zepto, es decir - zeptojs.com/license */
+(función(global, fábrica) {
+  if (typeof define === 'función' && define.amd)
+    definir (función () { volver fábrica (global)})
+  demás
+    fábrica (mundial)
+}(esto, función(ventana) {
+  var Zepto = (función() {
+  var undefined, clave, $, classList, matrizVacía = [], concat = matrizVacío.concat, filtro = matrizVacío.filtro, segmento = matrizVacío.rebanada,
+    documento = ventana.documento,
+    visualización de elementos = {}, classCache = {},
+    cssNumber = { 'column-count': 1, 'columns': 1, 'font-weight': 1, 'line-height': 1, 'opacity': 1, 'z-index': 1, 'zoom' : 1 },
+    fragmentoRE = /^\s*<(\w+|!)[^>]*>/,
+    singleTagRE = /^<(\w+)\s*\/?>(?:<\/\1>|)$/,
+    tagExpanderRE = /<(?!area|br|col|embed|hr|img|input|link|meta|param)(([\w:]+)[^>]*)\/>/ig,
+    rootNodeRE = /^(?:cuerpo|html)$/i,
+    capitalRE = /([AZ])/g,
+
+    // atributos especiales que deben obtenerse/establecerse a través de llamadas a métodos
+    atributos del método = ['val', 'css', 'html', 'texto', 'datos', 'ancho', 'alto', 'desplazamiento'],
+
+    adjacencyOperators = [ 'después', 'anteponer', 'antes', 'añadir'],
+    tabla = documento.createElement('tabla'),
+    tableRow = documento.createElement('tr'),
+    contenedores = {
+      'tr': documento.createElement('tbody'),
+      'tbody': mesa, 'thead': mesa, 'tfoot': mesa,
+      'td': filaTabla, 'th': filaTabla,
+      '*': documento.createElement('div')
+    },
+    readyRE = /completo|cargado|interactivo/,
+    simpleSelectorRE = /^[\w-]*$/,
+    clase2tipo = {},
+    toString = class2type.toString,
+    zepto = {},
+    camelizar, uniq,
+    tempParent = documento.createElement('div'),
+    propMap = {
+      'tabindex': 'tabIndex',
+      'solo lectura': 'solo lectura',
+      'para': 'htmlPara',
+      'clase': 'nombreClase',
+      'longitud máxima': 'longitud máxima',
+      'espacio entre celdas': 'espacio entre celdas',
+      'relleno celular': 'relleno celular',
+      'intervalo de filas': 'intervalo de filas',
+      'colspan': 'colSpan',
+      'mapa de uso': 'mapa de uso',
+      'borde del marco': 'borde del marco',
+      'contenteditable': 'contentEditable'
+    },
+    esArray = Array.isArray ||
+      función (objeto) { instancia de objeto de retorno de Array }
+
+  zepto.coincidencias = función(elemento, selector) {
+    if (!selector || !elemento || element.nodeType !== 1) devuelve falso
+    var matchSelector = elemento.coincidencias || elemento.webkitMatchesSelector ||
+                          elemento.mozMatchesSelector || elemento.oMatchesSelector ||
+                          elemento.matchesSelector
+    if (coincidenciasSelector) devuelve coincidenciasSelector.call(elemento, selector)
+    // volver a realizar un selector:
+    coincidencia de var, padre = elemento.parentNode, temp = !parent
+    if (temp) (padre = tempParent).appendChild(elemento)
+    coincidencia = ~zepto.qsa(padre, selector).indexOf(elemento)
+    temp && tempParent.removeChild(elemento)
+    partido de vuelta
+  }
+
+  tipo de función (obj) {
+    devolver obj == nulo? Cadena (obj):
+      class2type[toString.call(obj)] || "objeto"
+  }
+
+  función esFunción(valor) { tipo de retorno(valor) == "función" }
+  function isWindow(obj) { return obj != null && obj == obj.window }
+  function isDocument(obj) { return obj != null && obj.nodeType == obj.DOCUMENT_NODE }
+  función esObjeto(obj) { tipo de retorno(obj) == "objeto" }
+  función esPlainObject(obj) {
+    return isObject(obj) && !isWindow(obj) && Object.getPrototypeOf(obj) == Object.prototype
+  }
+
+  función comoArray(obj) {
+    var longitud = !!obj && 'longitud' en obj && obj.longitud,
+      tipo = $.tipo(obj)
+
+    devuelve 'función' != tipo && !isWindow(obj) && (
+      'matriz' == tipo || longitud === 0 ||
+        (tipo de longitud == 'número' && longitud > 0 && (longitud - 1) en obj)
+    )
+  }
+
+  función compacta (matriz) { return filter.call (matriz, function (item) { return item != null }) }
+  función aplanar (matriz) { volver matriz.longitud > 0? $.fn.concat.apply([], matriz) : matriz }
+  camelize = function(str){ return str.replace(/-+(.)?/g, function(match, chr){ return chr ? chr.toUpperCase() : '' }) }
+  función dasherize(str) {
+    return str.replace(/::/g, '/')
+           .replace(/([AZ]+)([AZ][az])/g, '$1_$2')
+           .replace(/([az\d])([AZ])/g, '$1_$2')
+           .reemplazar(/_/g, '-')
+           .toLowerCase()
+  }
+  uniq = function(matriz){ return filter.call(matriz, función(elemento, idx){ return matriz.indexOf(elemento) == idx }) }
+
+  función claseRE(nombre) {
+    devolver el nombre en classCache?
+      classCache[nombre] : (classCache[nombre] = new RegExp('(^|\\s)' + nombre + '(\\s|$)'))
+  }
+
+  function mayAddPx(nombre, valor) {
+    return (typeof value == "number" && !cssNumber[dasherize(name)]) ? valor + "px" : valor
+  }
+
+  función de visualización predeterminada (nombre de nodo) {
+    elemento var, mostrar
+    if (!elementDisplay[nombreNodo]) {
+      elemento = documento.createElement(nombreNodo)
+      documento.cuerpo.appendChild(elemento)
+      mostrar = getComputedStyle(elemento, '').getPropertyValue("mostrar")
+      elemento.parentNode.removeChild(elemento)
+      mostrar == "ninguno" && (mostrar = "bloquear")
+      elementDisplay[nodeName] = mostrar
+    }
+    mostrar elemento de retorno [nombre de nodo]
+  }
+
+  función hijos(elemento) {
+    devolver 'niños' en el elemento?
+      rebanada.llamada(elemento.niños) :
+      $.map(element.childNodes, function(node){ if (node.nodeType == 1) return node })
+  }
+
+  función Z(dom, selector) {
+    var i, len = dom ? dom.longitud : 0
+    for (i = 0; i < len; i++) this[i] = dom[i]
+    esta.longitud = len
+    este.selector = selector || ''
+  }
+
+  // `$.zepto.fragment` toma una cadena html y un nombre de etiqueta opcional
+  // para generar nodos DOM a partir de la cadena html dada.
+  // Los nodos DOM generados se devuelven como una matriz.
+  // Esta función se puede anular en complementos, por ejemplo, para hacer
+  // es compatible con navegadores que no soportan completamente el DOM.
+  zepto.fragmento = función (html, nombre, propiedades) {
+    var dom, nodos, contenedor
+
+    // Un caso especial de optimización para una sola etiqueta
+    if (singleTagRE.test(html)) dom = $(document.createElement(RegExp.$1))
+
+    si (!dom) {
+      if (html.reemplazar) html = html.reemplazar(tagExpanderRE, "<$1></$2>")
+      if (nombre === indefinido) nombre = fragmentoRE.test(html) && RegExp.$1
+      if (!(nombre en contenedores)) nombre = '*'
+
+      contenedor = contenedores[nombre]
+      contenedor.innerHTML = '' + html
+      dom = $.each(slice.call(container.childNodes), function(){
+        container.removeChild(esto)
+      })
+    }
+
+    if (esPlainObject(propiedades)) {
+      nodos = $(dom)
+      $.each(propiedades, función(clave, valor) {
+        if (methodAttributes.indexOf(clave) > -1) nodos[clave](valor)
+        else nodes.attr(clave, valor)
+      })
+    }
+
+    volver dom
+  }
+
+  // `$.zepto.Z` intercambia el prototipo de la matriz `dom` dada
+  // de nodos con `$.fn` y así suministrar todas las funciones de Zepto
+  // a la matriz. Este método se puede anular en los complementos.
+  zepto.Z = función (dom, selector) {
+    devolver nueva Z (dom, selector)
+  }
+
+  // `$.zepto.isZ` debería devolver `true` si el objeto dado es un Zepto
+  // recopilación. Este método se puede anular en los complementos.
+  zepto.isZ = función(objeto) {
+    objeto de retorno instancia de zepto.Z
+  }
+
+  // `$.zepto.init` es la contrapartida de Zepto a `$.fn.init` de jQuery y
+  // toma un selector CSS y un contexto opcional (y maneja varios
+  // casos especiales).
+  // Este método se puede anular en los complementos.
+  zepto.init = función (selector, contexto) {
+    var dom
+    // Si no se da nada, devuelve una colección de Zepto vacía
+    si (!selector) devuelve zepto.Z()
+    // Optimizar para selectores de cadenas
+    else if (tipo de selector == 'cadena') {
+      selector = selector.trim()
+      // Si es un fragmento html, crea nodos a partir de él
+      // Nota: tanto en Chrome 21 como en Firefox 15, error DOM 12
+      // se lanza si el fragmento no comienza con <
+      if (selector[0] == '<' && fragmentoRE.test(selector))
+        dom = zepto.fragment(selector, RegExp.$1, context), selector = null
+      // Si hay un contexto, cree primero una colección en ese contexto y seleccione
+      // nodos desde allí
+      de lo contrario, si (contexto! == indefinido) devuelve $ (contexto). Find (selector)
+      // Si es un selector CSS, utilícelo para seleccionar nodos.
+      else dom = zepto.qsa(documento, selector)
+    }
+    // Si se da una función, llámala cuando el DOM esté listo
+    de lo contrario si (isFunction(selector)) devuelve $(documento).ready(selector)
+    // Si se da una colección de Zepto, simplemente devuélvela
+    else if (zepto.isZ(selector)) devolver selector
+    demás {
+      // normaliza la matriz si se proporciona una matriz de nodos
+      if (isArray(selector)) dom = compacto(selector)
+      // Envolver nodos DOM.
+      más si (esObjeto(selector))
+        dom = [selector], selector = nulo
+      // Si es un fragmento html, crea nodos a partir de él
+      más si (fragmentRE.test(selector))
+        dom = zepto.fragment(selector.trim(), RegExp.$1, context), selector = null
+      // Si hay un contexto, cree primero una colección en ese contexto y seleccione
+      // nodos desde allí
+      de lo contrario, si (contexto! == indefinido) devuelve $ (contexto). Find (selector)
+      // Y por último pero no menos importante, si es un selector CSS, utilícelo para seleccionar nodos.
+      else dom = zepto.qsa(documento, selector)
+    }
+    // crea una nueva colección de Zepto a partir de los nodos encontrados
+    volver zepto.Z(dom, selector)
+  }
+
+  // `$` será el objeto base `Zepto`. Al llamar a este
+  // la función simplemente llama a `$.zepto.init, lo que hace que la implementación
+  // detalles de selección de nodos y creación de colecciones Zepto
+  // parcheable en complementos.
+  $ = función (selector, contexto) {
+    devuelve zepto.init(selector, contexto)
+  }
+
+  function extender (objetivo, fuente, profundidad) {
+    para (ingrese la fuente)
+      if (profundo && (isPlainObject(fuente[clave]) || isArray(fuente[clave]))) {
+        if (isPlainObject(origen[clave]) && !isPlainObject(objetivo[clave]))
+          objetivo[clave] = {}
+        if (isArray(fuente[clave]) && !isArray(objetivo[clave]))
+          destino[clave] = []
+        extender (objetivo [clave], fuente [clave], profundo)
+      }
+      else if (fuente[clave] !== indefinido) destino[clave] = fuente[clave]
+  }
+
+  // Copiar todas las propiedades excepto las no definidas de una o más
+  // objetos al objeto `objetivo`.
+  $.extender = función(objetivo){
+    var deep, args = slice.call(argumentos, 1)
+    if (tipo de objetivo == 'booleano') {
+      profundo = objetivo
+      objetivo = argumentos.shift()
+    }
+    args.forEach(función(arg){ extender(objetivo, arg, profundo) })
+    objetivo de retorno
+  }
+
+  // `$.zepto.qsa` es la implementación del selector CSS de Zepto que
+  // usa `document.querySelectorAll` y optimiza para algunos casos especiales, como `#id`.
+  // Este método se puede anular en los complementos.
+  zepto.qsa = función(elemento, selector){
+    var encontrado,
+        quizásID = selector[0] == '#',
+        maybeClass = !maybeID && selector[0] == '.',
+        nameOnly = quizásID || ¿quizás clase? selector.slice(1) : selector, // Asegúrese de que aún se verifique un nombre de etiqueta de 1 carácter
+        esSimple = simpleSelectorRE.test(nameOnly)
+    return (element.getElementById && isSimple && mightID) ? // Safari DocumentFragment no tiene getElementById
+      ((encontrado = elemento.getElementById(nameOnly)) ? [encontrado] : [] ) :
+      (elemento.tiponodo !== 1 && elemento.tiponodo !== 9 && elemento.tiponodo !== 11) ? [] :
+      rebanada.llamar(
+        isSimple && !maybeID && element.getElementsByClassName ? // DocumentFragment no tiene getElementsByClassName/TagName
+          ¿quizás clase? element.getElementsByClassName(nameOnly) : // Si es simple, podría ser una clase
+          element.getElementsByTagName(selector) : // O una etiqueta
+          element.querySelectorAll(selector) // O no es simple, y necesitamos consultar todo
+      )
+  }
+
+  función filtrada (nodos, selector) {
+    selector de retorno == nulo? $(nodos) : $(nodos).filtro(selector)
+  }
+
+  $.contiene = documento.documentElement.contiene ?
+    función (padre, nodo) {
+      return padre !== nodo && padre.contiene(nodo)
+    } :
+    función (padre, nodo) {
+      while (nodo && (nodo = nodo.parentNode))
+        si (nodo === padre) devuelve verdadero
+      falso retorno
+    }
+
+  function funcArg(contexto, argumento, idx, carga útil) {
+    devolver esFunción(arg) ? arg.call(contexto, idx, carga útil): arg
+  }
+
+  función setAttribute(nodo, nombre, valor) {
+    valor == nulo? node.removeAttribute(nombre) : node.setAttribute(nombre, valor)
+  }
+
+  // acceder a la propiedad className respetando SVGAnimatedString
+  función className(nodo, valor){
+    var klass = nodo.className || '',
+        svg = klass && klass.baseVal !== indefinido
+
+    si (valor === indefinido) devuelve svg? klass.baseVal : klass
+    svg? (klass.baseVal = valor) : (nodo.className = valor)
+  }
+
+  // "verdadero" => verdadero
+  // "falso" => falso
+  // "nulo" => nulo
+  // "42" => 42
+  // "42,5" => 42,5
+  // "08" => "08"
+  // JSON => analizar si es válido
+  // Cadena => uno mismo
+  función deserializeValue(valor) {
+    intentar {
+      valor de retorno?
+        valor == "verdadero" ||
+        ( valor == "falso" ? falso :
+          valor == "nulo" ? nulo :
+          +valor + "" == valor ? +valor :
+          /^[\[\{]/.test(valor) ? $.parseJSON(valor) :
+          valor )
+        : valor
+    } atrapar (e) {
+      valor devuelto
+    }
+  }
+
+  $.tipo = tipo
+  $.esFuncion = esFuncion
+  $.esVentana = esVentana
+  $.isArray = esArray
+  $.esObjetoNormal = esObjetoNormal
+
+  $.isEmptyObject = function(objeto) {
+    nombre de la variable
+    para (nombre en obj) devuelve falso
+    volver verdadero
+  }
+
+  $.isNumeric = function(val) {
+    var num = Número (valor), tipo = tipo de valor
+    return val != nulo && tipo != 'booleano' &&
+      (escriba != 'cadena' || val.longitud) &&
+      !isNaN(num) && isFinite(num) || FALSO
+  }
+
+  $.inArray = función(elemento, matriz, i){
+    devuelve matrizVacía.indexOf.call(matriz, elemento, i)
+  }
+
+  $.camelCase = camelizar
+  $.trim = function(cadena) {
+    devolver str == nulo? "" : Cadena.prototipo.trim.call(cadena)
+  }
+
+  // compatibilidad de complementos
+  $.uuid = 0
+  $.apoyo = { }
+  $.expr = { }
+  $.noop = función() {}
+
+  $.mapa = función (elementos, devolución de llamada) {
+    valor var, valores = [], i, clave
+    si (comoArray(elementos))
+      for (i = 0; i < elementos.longitud; i++) {
+        valor = devolución de llamada (elementos [i], i)
+        if (valor != nulo) valores.push(valor)
+      }
+    demás
+      para (ingresar elementos) {
+        valor = devolución de llamada (elementos [clave], clave)
+        if (valor != nulo) valores.push(valor)
+      }
+    volver aplanar (valores)
+  }
+
+  $. cada = función (elementos, devolución de llamada) {
+    var i, clave
+    si (comoArray(elementos)) {
+      for (i = 0; i < elementos.longitud; i++)
+        if (devolución de llamada. llamada (elementos [i], i, elementos [i]) === falso) devolver elementos
+    } demás {
+      para (ingresar elementos)
+        if (devolución de llamada. llamada (elementos [clave], clave, elementos [clave]) === falso) devolver elementos
+    }
+
+    devolver elementos
+  }
+
+  $.grep = función (elementos, devolución de llamada) {
+    return filter.call(elementos, devolución de llamada)
+  }
+
+  si (ventana.JSON) $.parseJSON = JSON.parse
+
+  // Rellenar el mapa class2type
+  $.each("Boolean Number String Function Array Date RegExp Object Error".split(" "), function(i, nombre) {
+    class2type[ "[objeto " + nombre + "]" ] = nombre.toLowerCase()
+  })
+
+  // Definir métodos que estarán disponibles en todos
+  // Colecciones Zepto
+  $.fn = {
+    constructor: zepto.Z,
+    longitud: 0,
+
+    // Porque una colección actúa como una matriz
+    // copia sobre estas útiles funciones de matriz.
+    forEach: matrizvacía.forEach,
+    reducir: matrizvacia.reducir,
+    empujar: matrizvacia.empujar,
+    ordenar: matrizvacia.ordenar,
+    empalme: matrizvacia.empalme,
+    indexOf: matrizvacia.indexOf,
+    concat: función(){
+      var i, valor, argumentos = []
+      for (i = 0; i < argumentos.longitud; i++) {
+        valor = argumentos[i]
+        argumentos[i] = zepto.isZ(valor) ? valor.toArray() : valor
+      }
+      devuelve concat.apply(zepto.isZ(this) ? this.toArray() : this, args)
+    },
+
+    // `map` y `slice` en jQuery API funcionan de manera diferente
+    // de sus contrapartes de matriz
+    mapa: función (fn) {
+      return $($.map(this, function(el, i){ return fn.call(el, i, el) }))
+    },
+    rebanada: función(){
+      devuelve $(slice.apply(esto, argumentos))
+    },
+
+    listo: función (devolución de llamada) {
+      // necesita verificar si document.body existe para IE como informa ese navegador
+      // documento listo cuando aún no ha creado el elemento del cuerpo
+      if (readyRE.test(document.readyState) && document.body) callback($)
+      else document.addEventListener('DOMContentLoaded', function(){ callback($) }, false)
+      devolver esto
+    },
+    obtener: función (idx) {
+      devolver idx === indefinido? slice.call(this) : this[idx >= 0 ? idx : idx + this.longitud]
+    },
+    toArray: function(){ devuelve esto.get() },
+    tamaño: función(){
+      devolver esta longitud
+    },
+    eliminar: función(){
+      devolver esto.each(función(){
+        if (this.parentNode != null)
+          este.parentNode.removeChild(este)
+      })
+    },
+    cada: función (devolución de llamada) {
+      matrizvacia.cada.llamada(esto, función(el, idx){
+        volver callback.call(el, idx, el) !== false
+      })
+      devolver esto
+    },
+    filtro: función (selector) {
+      si (isFunction(selector)) devuelve this.not(this.not(selector))
+      devuelve $(filtro.llamar(esto, función(elemento){
+        devuelve zepto.matches(elemento, selector)
+      }))
+    },
+    agregar: función (selector, contexto) {
+      devuelve $(uniq(this.concat($(selector,context))))
+    },
+    es: función (selector) {
+      devuelve this.length > 0 && zepto.matches(this[0], selector)
+    },
+    no: función (selector) {
+      var nodos=[]
+      if (isFunction(selector) && selector.call !== indefinido)
+        this.each(función(idx){
+          if (!selector.call(this,idx)) nodes.push(this)
+        })
+      demás {
+        var excluye = tipo de selector == 'cadena'? este.filtro(selector) :
+          (likeArray(selector) && isFunction(selector.item)) ? slice.call(selector) : $(selector)
+        esto.paraCada(función(el){
+          if (excluye.indexOf(el) < 0) nodos.push(el)
+        })
+      }
+      devolver $(nodos)
+    },
+    tiene: función(selector){
+      devuelve esto.filtro(función(){
+        devolver isObject(selector) ?
+          $. contiene (esto, selector):
+          $(esto).encontrar(selector).tamaño()
+      })
+    },
+    ecuación: función (idx) {
+      devolver idx === -1 ? este.slice(idx) : this.slice(idx, + idx + 1)
+    },
+    primero: función(){
+      var el = esto[0]
+      devolver el && !isObject(el) ? el : $(el)
+    },
+    último: función(){
+      var el = esto[esta.longitud - 1]
+      devolver el && !isObject(el) ? el : $(el)
+    },
+    encontrar: función (selector) {
+      var resultado, $esto = esto
+      si (!selector) resultado = $()
+      else if (tipo de selector == 'objeto')
+        resultado = $(selector).filtro(función(){
+          var nodo = esto
+          devuelve matrizVacía.alguna.llamada($esto, función(padre){
+            return $.contains(padre, nodo)
+          })
+        })
+      else if (this.length == 1) result = $(zepto.qsa(this[0], selector))
+      else resultado = this.map(function(){ return zepto.qsa(this, selector) })
+      resultado devuelto
+    },
+    más cercano: función (selector, contexto) {
+      var nodos = [], colección = tipo de selector == 'objeto' && $(selector)
+      this.each(función(_, nodo){
+        while (nodo && !(colección ? colección.indexOf(nodo) >= 0 : zepto.matches(nodo, selector)))
+          nodo = nodo !== contexto && !isDocument(nodo) && nodo.parentNode
+        if (nodo && nodos.indexOf(nodo) < 0) nodos.push(nodo)
+      })
+      devolver $(nodos)
+    },
+    padres: función (selector) {
+      var ancestros = [], nodos = esto
+      while (nodos.longitud > 0)
+        nodos = $.map(nodos, función(nodo){
+          if ((nodo = nodo.parentNode) && !isDocument(nodo) && ancestros.indexOf(nodo) < 0) {
+            antepasados.push(nodo)
+            nodo de retorno
+          }
+        })
+      retorno filtrado (ancestros, selector)
+    },
+    padre: función (selector) {
+      return filtered(uniq(this.pluck('parentNode')), selector)
+    },
+    niños: función (selector) {
+      return filtered(this.map(function(){ return children(this) }), selector)
+    },
+    contenido: función () {
+      devuelve este.mapa(función() { devuelve este.contentDocument || slice.call(this.childNodes) })
+    },
+    hermanos: función(selector){
+      return filtered(this.map(function(i, el){
+        return filter.call(child(el.parentNode), function(child){ return child!==el })
+      }), seleccionador)
+    },
+    vacío: función(){
+      devuelve esto.each(función(){ this.innerHTML = '' })
+    },
+    // `pluck` se toma prestado de Prototype.js
+    arrancar: función (propiedad) {
+      return $.map(this, function(el){ return el[propiedad] })
+    },
+    mostrar: función () {
+      devolver esto.each(función(){
+        this.style.display == "ninguno" && (this.style.display = '')
+        if (getComputedStyle(this, '').getPropertyValue("display") == "ninguno")
+          this.style.display = defaultDisplay(this.nodeName)
+      })
+    },
+    reemplazar con: función (nuevo contenido) {
+      devolver esto antes (nuevo contenido). Eliminar ()
+    },
+    envolver: función (estructura) {
+      var func = esFuncion(estructura)
+      si (este[0] && !función)
+        var dom = $(estructura).get(0),
+            clon = dom.parentNode || esta.longitud > 1
+
+      devolver esto.each(función(índice){
+        $(esto).wrapAll(
+          función? estructura.llamada(esto, índice) :
+            ¿clonar? dom.cloneNode(verdadero) : dom
+        )
+      })
+    },
+    wrapAll: función (estructura) {
+      si (esto[0]) {
+        $(este[0]).before(estructura = $(estructura))
+        var niños
+        // profundizar hasta el elemento más interno
+        while ((niños = estructura.niños()).longitud) estructura = niños.primero()
+        $(estructura).append(esto)
+      }
+      devolver esto
+    },
+    wrapInner: función (estructura) {
+      var func = esFuncion(estructura)
+      devolver esto.each(función(índice){
+        var self = $(esto), contenido = self.contenido(),
+            dom = función? estructura.llamada(esto, índice) : estructura
+        contenido.longitud ? contenidos.wrapAll(dom) : self.append(dom)
+      })
+    },
+    desenvolver: función(){
+      this.parent().each(función(){
+        $(esto).reemplazarCon($(esto).niños())
+      })
+      devolver esto
+    },
+    clonar: función(){
+      devolver este. mapa (función () { devolver este. cloneNode (verdadero)})
+    },
+    ocultar: función(){
+      devuelve esto.css("pantalla", "ninguno")
+    },
+    alternar: función (configuración) {
+      devolver esto.each(función(){
+        var el = $(esto)
+        ;(configuración === indefinida ? el.css("display") == "ninguna" : configuración) ? el.show() : el.hide()
+      })
+    },
+    anterior: function(selector){ return $(this.pluck('previousElementSibling')).filter(selector || '*') },
+    siguiente: function(selector){ return $(this.pluck('nextElementSibling')).filter(selector || '*') },
+    html: función (html) {
+      devolver 0 en los argumentos?
+        this.each(función(idx){
+          var originHtml = this.innerHTML
+          $(esto).empty().append(funcArg(esto, html, idx, originHtml) )
+        }):
+        (0 en este ? este [0].innerHTML: nulo)
+    },
+    texto: función(texto){
+      devolver 0 en los argumentos?
+        this.each(función(idx){
+          var newText = funcArg(this, text, idx, this.textContent)
+          this.textContent = newText == null ? '' : ''+nuevoTexto
+        }):
+        (0 en esto? this.pluck('textContent').join("") : null)
+    },
+    atributo: función (nombre, valor) {
+      var resultado
+      return (tipo de nombre == 'cadena' && !(1 en argumentos)) ?
+        (0 en este && este[0].nodeType == 1 && (resultado = este[0].getAttribute(nombre)) != nulo ? resultado: indefinido):
+        this.each(función(idx){
+          si (this.nodeType !== 1) regresa
+          if (isObject(nombre)) for (ingresar nombre) setAttribute(this, key, name[key])
+          else setAttribute(este, nombre, funcArg(este, valor, idx, this.getAttribute(nombre)))
+        })
+    },
+    removeAttr: función(nombre){
+      devuelve this.each(function(){ this.nodeType === 1 && name.split(' ').forEach(function(attribute){
+        setAttribute(este, atributo)
+      }, este)})
+    },
+    prop: función (nombre, valor) {
+      nombre = propMap[nombre] || nombre
+      return (1 en argumentos) ?
+        this.each(función(idx){
+          este[nombre] = funcArg(este, valor, idx, este[nombre])
+        }):
+        (este[0] && este[0][nombre])
+    },
+    removeProp: función(nombre){
+      nombre = propMap[nombre] || nombre
+      devuelve esto. cada uno (función () { eliminar este [nombre]})
+    },
+    datos: función (nombre, valor) {
+      var attrName = 'data-' + name.replace(capitalRE, '-$1').toLowerCase()
+
+      var data = (1 en argumentos) ?
+        this.attr(attrName, valor) :
+        this.attr(nombreAtributo)
+
+      devolver datos! == nulo? deserializeValue (datos): indefinido
+    },
+    val: función(valor){
+      si (0 en argumentos) {
+        si (valor == nulo) valor = ""
+        devuelve esto.each(función(idx){
+          este.valor = funcArg(este, valor, idx, este.valor)
+        })
+      } demás {
+        devuelve este[0] && (este[0].múltiple?
+           $(this[0]).find('option').filter(function(){ return this.selected }).pluck('value') :
+           este[0].valor)
+      }
+    },
+    desplazamiento: función (coordenadas) {
+      if (coordenadas) devuelven esto.each(función(índice){
+        var $esto = $(esto),
+            coords = funcArg(esto, coordenadas, índice, $esto.offset()),
+            parentOffset = $this.offsetParent().offset(),
+            accesorios = {
+              arriba: coords.top - parentOffset.top,
+              izquierda: coords.left - parentOffset.left
+            }
+
+        if ($this.css('posición') == 'estático') props['posición'] = 'relativo'
+        $this.css(accesorios)
+      })
+      si (!esta.longitud) devuelve nulo
+      if (document.documentElement !== this[0] && !$.contains(document.documentElement, this[0]))
+        volver {arriba: 0, izquierda: 0}
+      var obj = esto[0].getBoundingClientRect()
+      devolver {
+        izquierda: obj.izquierda + ventana.pageXOffset,
+        arriba: obj.top + window.pageYOffset,
+        ancho: Math.round(obj.width),
+        altura: Math.round(obj.height)
+      }
+    },
+    css: función (propiedad, valor) {
+      if (argumentos.longitud < 2) {
+        var elemento = este[0]
+        if (tipo de propiedad == 'cadena') {
+          si (!elemento) regresa
+          return elemento.estilo[camelize(propiedad)] || getComputedStyle(elemento, '').getPropertyValue(propiedad)
+        } más si (isArray(propiedad)) {
+          si (!elemento) regresa
+          var apoyos = {}
+          var estilo calculado = obtener estilo calculado (elemento, '')
+          $.each(propiedad, función(_, prop){
+            props[prop] = (element.style[camelize(prop)] || computedStyle.getPropertyValue(prop))
+          })
+          accesorios de retorno
+        }
+      }
+
+      var css = ''
+      if (tipo(propiedad) == 'cadena') {
+        si (! valor && valor! == 0)
+          this.each(function(){ this.style.removeProperty(dasherize(property)) })
+        demás
+          css = dasherize(propiedad) + ":" + mayAddPx(propiedad, valor)
+      } demás {
+        para (ingresar propiedad)
+          if (!propiedad[clave] && propiedad[clave] !== 0)
+            this.each(function(){ this.style.removeProperty(dasherize(key)) })
+          demás
+            css += dasherize(clave) + ':' + mayAddPx(clave, propiedad[clave]) + ';'
+      }
+
+      devuelve this.each(function(){ this.style.cssText += ';' + css })
+    },
+    índice: función (elemento) {
+      elemento de retorno? this.indexOf($(elemento)[0]) : this.parent().children().indexOf(this[0])
+    },
+    hasClass: función(nombre){
+      si (!nombre) devuelve falso
+      return matrizVacía.alguna.llamada(esto, función(el){
+        devuelve this.test(className(el))
+      }, claseRE(nombre))
+    },
+    addClass: función (nombre) {
+      si (!nombre) devuelve esto
+      devuelve esto.each(función(idx){
+        if (!('nombreDeClase' en esto)) devuelve
+        listaclases = []
+        var cls = className(this), newName = funcArg(this, nombre, idx, cls)
+        nuevoNombre.split(/\s+/g).forEach(función(clase){
+          if (!$(this).hasClass(klass)) classList.push(klass)
+        }, este)
+        classList.length && className(this, cls + (cls ? " " : "") + classList.join(" "))
+      })
+    },
+    removeClass: función(nombre){
+      devuelve esto.each(función(idx){
+        if (!('nombreDeClase' en esto)) devuelve
+        if (nombre === indefinido) devuelve className(this, '')
+        classList = className(esto)
+        funcArg(this, nombre, idx, classList).split(/\s+/g).forEach(function(klass){
+          classList = classList.replace(classRE(klass), " ")
+        })
+        className(esto, classList.trim())
+      })
+    },
+    toggleClass: función (nombre, cuándo) {
+      si (!nombre) devuelve esto
+      devuelve esto.each(función(idx){
+        var $esto = $(esto), nombres = funcArg(esto, nombre, idx, className(esto))
+        nombres.split(/\s+/g).forEach(función(clase){
+          (cuando === indefinido ? !$this.hasClass(klass) : when) ?
+            $this.addClass(clase) : $this.removeClass(clase)
+        })
+      })
+    },
+    scrollTop: función(valor){
+      si (!esta.longitud) regresa
+      var hasScrollTop = 'scrollTop' en este[0]
+      si (valor === indefinido) devuelve hasScrollTop? este[0].scrollTop : este[0].pageYOffset
+      devuelve esto. cada uno (tieneScrollTop?
+        function(){ this.scrollTop = valor } :
+        function(){ this.scrollTo(this.scrollX, valor) })
+    },
+    scrollLeft: función (valor) {
+      si (!esta.longitud) regresa
+      var hasScrollLeft = 'scrollLeft' en este[0]
+      si (valor === indefinido) devuelve hasScrollLeft? este[0].scrollLeft : este[0].pageXOffset
+      devuelva esto. cada uno (hasScrollLeft?
+        function(){ this.scrollLeft = valor } :
+        function(){ this.scrollTo(valor, this.scrollY) })
+    },
+    posición: función() {
+      si (!esta.longitud) regresa
+
+      var elem = esto[0],
+        // Obtener padre de compensación *real*
+        padre de compensación = this. padre de compensación (),
+        // Obtener compensaciones correctas
+        desplazamiento = esto.desplazamiento(),
+        parentOffset = rootNodeRE.test(offsetParent[0].nodeName) ? { arriba: 0, izquierda: 0 } : offsetParent.offset()
+
+      // Resta los márgenes de los elementos
+      // nota: cuando un elemento tiene margen: auto the offsetLeft y marginLeft
+      // son iguales en Safari, lo que hace que offset.left sea incorrectamente 0
+      offset.top -= parseFloat( $(elemento).css('margin-top') ) || 0
+      offset.left -= parseFloat( $(elem).css('margin-left') ) || 0
+
+      // Agregar bordes de offsetParent
+      parentOffset.top += parseFloat( $(offsetParent[0]).css('border-top-width') ) || 0
+      parentOffset.left += parseFloat( $(offsetParent[0]).css('border-left-width') ) || 0
+
+      // Resta las dos compensaciones
+      devolver {
+        superior: desplazamiento.superior - parentOffset.superior,
+        izquierda: offset.left - parentOffset.left
+      }
+    },
+    padre de compensación: función () {
+      devuelve esto.map(función(){
+        var padre = this.offsetParent || documento.cuerpo
+        while (padre && !rootNodeRE.test(padre.nodeName) && $(padre).css("posición") == "estática")
+          padre = padre.offsetParent
+        regresar padre
+      })
+    }
+  }
+
+  // por ahora
+  $.fn.detach = $.fn.remove
+
+  // Generamos las funciones `ancho` y `alto`
+  ;['ancho', 'alto'].forEach(función(dimensión){
+    var dimensionProperty =
+      dimension.replace(/./, function(m){ return m[0].toUpperCase() })
+
+    $.fn[dimensión] = función(valor){
+      var desplazamiento, el = esto[0]
+      si (valor === indefinido) devuelve isWindow(el) ? el['interior' + dimensiónPropiedad] :
+        esDocumento(el) ? el.documentElement['scroll' + dimensionProperty] :
+        (desplazamiento = esto.desplazamiento()) && desplazamiento[dimensión]
+      de lo contrario, devuelva this.each(function(idx){
+        el = $(esto)
+        el.css(dimensión, funcArg(este, valor, idx, el[dimensión]()))
+      })
+    }
+  })
+
+  function atravesarNodo(nodo, divertido) {
+    diversión (nodo)
+    for (var i = 0, len = node.childNodes.length; i < len; i++)
+      traverseNode(node.childNodes[i], diversión)
+  }
+
+  // Generar `después`, `anteponer`, `antes`, `agregar`,
+  // Métodos `insertAfter`, `insertBefore`, `appendTo` y `prependTo`.
+  adjacencyOperators.forEach(función(operador, operatorIndex) {
+    var dentro = operatorIndex % 2 //=> anteponer, agregar
+
+    $.fn[operador] = función(){
+      // los argumentos pueden ser nodos, matrices de nodos, objetos Zepto y cadenas HTML
+      var argType, nodos = $.map(argumentos, función(arg) {
+            var arr = []
+            tipoarg = tipo(arg)
+            if (argType == "matriz") {
+              arg.forEach(función(el) {
+                if (el.nodeType !== indefinido) return arr.push(el)
+                si no ($.zepto.isZ(el)) return arr = arr.concat(el.get())
+                arr = arr.concat(zepto.fragmento(el))
+              })
+              regreso
+            }
+            return argType == "objeto" || argumento == nulo?
+              arg : zepto.fragmento(arg)
+          }),
+          padre, copyByClone = this.length > 1
+      if (nodes.length < 1) devuelve esto
+
+      devuelve esto.each(function(_, target){
+        padre = dentro? destino : destino.nodopadre
+
+        // convertir todos los métodos a una operación "antes"
+        destino = índice de operador == 0 ? target.nextSibling :
+                 índiceoperador == 1 ? target.firstChild :
+                 índiceoperador == 2 ? objetivo :
+                 nulo
+
+        var parentInDocument = $.contains(document.documentElement, parent)
+
+        nodos.forEach(función(nodo){
+          si (copyByClone) nodo = node.cloneNode (verdadero)
+          de lo contrario, si (! padre) devuelve $ (nodo). eliminar ()
+
+          parent.insertBefore(nodo, objetivo)
+          if (parentInDocument) traverseNode(node, function(el){
+            if (el.nodeName != null && el.nodeName.toUpperCase() === 'SCRIPT' &&
+               (!el.tipo || el.tipo === 'texto/javascript') && !el.src){
+              var destino = el.documentopropietario ? el.ownerDocument.defaultView: ventana
+              objetivo['eval'].call(objetivo, el.innerHTML)
+            }
+          })
+        })
+      })
+    }
+
+    // después => insertarDespués
+    // anteponer => anteponer a
+    // antes => insertarAntes
+    // agregar => agregar a
+    $.fn[dentro? operator+'To' : 'insert'+(operatorIndex ? 'Antes' : 'Después')] = function(html){
+      $(html)[operador](esto)
+      devolver esto
+    }
+  })
+
+  zepto.Z.prototipo = Z.prototipo = $.fn
+
+  // Exportar funciones API internas en el espacio de nombres `$.zepto`
+  zepto.uniq = uniq
+  zepto.deserializeValue = deserializeValue
+  $.zepto = zepto
+
+  devolver $
+})()
+
+ventana.Zepto = Zepto
+ventana.$ === indefinido && (ventana.$ = Zepto)
+
+;(función($){
+  var _zid = 1, indefinido,
+      segmento = Array.prototype.segmento,
+      esFuncion = $.esFuncion,
+      isString = function(obj){ tipo de retorno de obj == 'cadena' },
+      manejadores = {},
+      eventos especiales={},
+      focusinSupported = 'enfocar' en la ventana,
+      foco = { foco: 'enfocando', desenfoque: 'foco'},
+      pasar el mouse = { mouseenter: 'mouseover', mouseleave: 'mouseout' }
+
+  specialEvents.click = specialEvents.mousedown = specialEvents.mouseup = specialEvents.mousemove = 'MouseEvents'
+
+  función zid(elemento) {
+    devolver elemento._zid || (elemento._zid = _zid++)
+  }
+  función findHandlers (elemento, evento, fn, selector) {
+    evento = analizar (evento)
+    if (evento.ns) var comparador = emparejadorPara(evento.ns)
+    return (controladores[zid(elemento)] || []).filter(función(controlador) {
+      controlador de devolución
+        && (!evento.e || manejador.e == evento.e)
+        && (!evento.ns || comparador.prueba(controlador.ns))
+        && (!fn || zid(manejador.fn) === zid(fn))
+        && (!selector || handler.sel == selector)
+    })
+  }
+  función analizar (evento) {
+    var partes = ('' + evento).split('.')
+    return {e: partes[0], ns: partes.slice(1).sort().join(' ')}
+  }
+  función emparejadorPara(ns) {
+    devuelve nueva RegExp('(?:^| )' + ns.replace(' ', ' .* ?') + '(?: |$)')
+  }
+
+  función eventCapture (manejador, configuración de captura) {
+    controlador de retorno.del &&
+      (!focusinSupported && (handler.e en foco)) ||
+      !!configuración de captura
+  }
+
+  function eventoreal(tipo) {
+    volver hover[tipo] || (focusinSoportado && focus[tipo]) || tipo
+  }
+
+  función agregar (elemento, eventos, fn, datos, selector, delegador, captura) {
+    var id = zid(elemento), set = (manejadores[id] || (manejadores[id] = []))
+    eventos.split(/\s/).forEach(función(evento){
+      if (evento == 'listo') devuelve $(documento).listo(fn)
+      var handler = analizar (evento)
+      manejador.fn = fn
+      manejador.sel = selector
+      // emular mouseenter, mouseleave
+      si (controlador.e en hover) fn = function(e){
+        var relacionado = e.objetivorelacionado
+        if (!relacionado || (relacionado !== este && !$.contains(esto, relacionado)))
+          return handler.fn.apply(esto, argumentos)
+      }
+      handler.del = delegador
+      var devolución de llamada = delegador || fn
+      manejador.proxy = función(e){
+        e = compatibles (e)
+        si (e.isImmediatePropagationStopped()) regresa
+        e.datos = datos
+        var resultado = callback.apply(elemento, e._args == indefinido ? [e] : [e].concat(e._args))
+        si (resultado === falso) e.preventDefault(), e.stopPropagation()
+        resultado devuelto
+      }
+      controlador.i = conjunto.longitud
+      set.push(manejador)
+      si ('addEventListener' en el elemento)
+        elemento.addEventListener(realEvent(handler.e), handler.proxy, eventCapture(handler, capture))
+    })
+  }
+  función eliminar (elemento, eventos, fn, selector, captura) {
+    id de var = zid (elemento)
+    ;(eventos || '').split(/\s/).forEach(función(evento){
+      findHandlers(elemento, evento, fn, selector).forEach(función(manejador){
+        eliminar controladores[id][controlador.i]
+      si ('removeEventListener' en el elemento)
+        element.removeEventListener(realEvent(handler.e), handler.proxy, eventCapture(handler, capture))
+      })
+    })
+  }
+
+  $.event = { añadir: añadir, eliminar: eliminar }
+
+  $.proxy = función(fn, contexto) {
+    var args = (2 en argumentos) && slice.call(argumentos, 2)
+    si (esFuncion(fn)) {
+      var proxyFn = function(){ return fn.apply(context, args ? args.concat(slice.call(arguments)) : arguments) }
+      proxyFn._zid = zid(fn)
+      devolver proxyFn
+    } más si (esCadena(contexto)) {
+      si (argumentos) {
+        argumentos.unshift(fn[contexto], fn)
+        devuelve $.proxy.apply(nulo, argumentos)
+      } demás {
+        devolver $.proxy(fn[contexto], fn)
+      }
+    } demás {
+      arrojar nuevo TypeError("función esperada")
+    }
+  }
+
+  $.fn.bind = función (evento, datos, devolución de llamada){
+    devolver this.on (evento, datos, devolución de llamada)
+  }
+  $.fn.unbind = función(evento, devolución de llamada){
+    devuelve esto.off(evento, devolución de llamada)
+  }
+  $.fn.one = función (evento, selector, datos, devolución de llamada) {
+    devuelve this.on(evento, selector, datos, devolución de llamada, 1)
+  }
+
+  var returnTrue = function(){return true},
+      returnFalse = function(){return false},
+      ignoreProperties = /^([AZ]|returnValue$|layer[XY]$|webkitMovement[XY]$)/,
+      métodos de evento = {
+        preventDefault: 'es predeterminadoPrevented',
+        stopImmediatePropagation: 'esImmediatePropagationStopped',
+        stopPropagation: 'isPropagationStopped'
+      }
+
+  función compatible (evento, fuente) {
+    if (fuente || !event.isDefaultPrevented) {
+      fuente || (fuente = evento)
+
+      $.each(eventMethods, function(nombre, predicado) {
+        var sourceMethod = fuente[nombre]
+        evento[nombre] = función(){
+          este [predicado] = returnTrue
+          return sourceMethod && sourceMethod.apply(fuente, argumentos)
+        }
+        evento[predicado] = returnFalse
+      })
+
+      evento.timeStamp || (evento.timeStamp = Fecha.ahora())
+
+      if (source.defaultPrevented !== indefinido ? source.defaultPrevented :
+          'returnValue' en la fuente? fuente.returnValue === falso:
+          fuente.getPreventDefault && fuente.getPreventDefault())
+        event.isDefaultPrevented = volverVerdadero
+    }
+    evento de regreso
+  }
+
+  función createProxy(evento) {
+    clave var, proxy = { evento original: evento }
+    para (introducir evento)
+      if (!ignoreProperties.test(clave) && evento[clave] !== indefinido) proxy[clave] = evento[clave]
+
+    volver compatible (proxy, evento)
+  }
+
+  $.fn.delegado = función (selector, evento, devolución de llamada){
+    devuelve this.on (evento, selector, devolución de llamada)
+  }
+  $.fn.undelegate = función (selector, evento, devolución de llamada){
+    devuelve this.off(evento, selector, devolución de llamada)
+  }
+
+  $.fn.live = función (evento, devolución de llamada) {
+    $(documento.cuerpo).delegado(este.selector, evento, devolución de llamada)
+    devolver esto
+  }
+  $.fn.die = función (evento, devolución de llamada) {
+    $(documento.cuerpo).undelegate(este.selector, evento, devolución de llamada)
+    devolver esto
+  }
+
+  $.fn.on = función (evento, selector, datos, devolución de llamada, uno) {
+    var autoRemove, delegador, $this = this
+    if (evento && !isString(evento)) {
+      $.each(evento, función(tipo, fn){
+        $this.on(tipo, selector, datos, fn, uno)
+      })
+      devolver $ esto
+    }
+
+    if (!isString(selector) && !isFunction(devolución de llamada) && devolución de llamada !== falso)
+      devolución de llamada = datos, datos = selector, selector = indefinido
+    si (devolución de llamada === indefinido || datos === falso)
+      devolución de llamada = datos, datos = indefinido
+
+    si (devolución de llamada === falso) devolución de llamada = returnFalse
+
+    devuelve $this.each(función(_, elemento){
+      if (uno) autoRemove = function(e){
+        eliminar (elemento, e.type, devolución de llamada)
+        devolver callback.apply(esto, argumentos)
+      }
+
+      if (selector) delegador = function(e){
+        var evt, coincidencia = $(e.objetivo).más cercano(selector, elemento).get(0)
+        if (coincidencia && coincidencia !== elemento) {
+          evt = $.extend(createProxy(e), {objetivo actual: coincidencia, disparo en vivo: elemento})
+          return (autoRemove || callback).apply(match, [evt].concat(slice.call(arguments, 1)))
+        }
+      }
+
+      agregar (elemento, evento, devolución de llamada, datos, selector, delegador || autoRemove)
+    })
+  }
+  $.fn.off = función (evento, selector, devolución de llamada) {
+    var $esto = esto
+    if (evento && !isString(evento)) {
+      $.each(evento, función(tipo, fn){
+        $this.off(tipo, selector, fn)
+      })
+      devolver $ esto
+    }
+
+    if (!isString(selector) && !isFunction(devolución de llamada) && devolución de llamada !== falso)
+      devolución de llamada = selector, selector = indefinido
+
+    si (devolución de llamada === falso) devolución de llamada = returnFalse
+
+    devuelve $this.each(función(){
+      eliminar (este, evento, devolución de llamada, selector)
+    })
+  }
+
+  $.fn.trigger = función(evento, argumentos){
+    evento = (isString(evento) || $.isPlainObject(evento)) ? $.Evento(evento) : compatible(evento)
+    event._args = argumentos
+    devolver esto.each(función(){
+      // manejar foco(), desenfoque() llamándolos directamente
+      if (evento.tipo en foco && tipode este[evento.tipo] == "función") este[evento.tipo]()
+      // los elementos de la colección pueden no ser elementos DOM
+      de lo contrario si ('dispatchEvent' en esto) this.dispatchEvent(evento)
+      else $(esto).triggerHandler(evento, argumentos)
+    })
+  }
+
+  // desencadena controladores de eventos en el elemento actual como si ocurriera un evento,
+  // no desencadena un evento real, no burbujea
+  $.fn.triggerHandler = function(evento, argumentos){
+    var e, resultado
+    this.each(función(i, elemento){
+      e = createProxy(isString(evento) ? $.Evento(evento) : evento)
+      e._args = argumentos
+      e.objetivo = elemento
+      $.each(findHandlers(elemento, evento.tipo || evento), función(i, controlador){
+        resultado = manejador.proxy(e)
+        si (e.isImmediatePropagationStopped()) devuelve falso
+      })
+    })
+    resultado devuelto
+  }
+
+  // métodos abreviados para `.bind(event, fn)` para cada tipo de evento
+  ;('focusin focusout focus blur cargar redimensionar scroll descargar click dblclick '+
+  'mousedown mouseup mousemove mouseover mouseout mouseenter mouseleave '+
+  'cambiar seleccionar keydown keypress keyup error').split(' ').forEach(función(evento) {
+    $.fn[evento] = función(devolución de llamada) {
+      volver (0 en argumentos) ?
+        this.bind(evento, devolución de llamada) :
+        este disparador (evento)
+    }
+  })
+
+  $.Evento = función(tipo, props) {
+    if (!isString(tipo)) accesorios = tipo, tipo = accesorios.tipo
+    var event = document.createEvent(specialEvents[type] || 'Events'), bubbles = true
+    if (accesorios) para (var nombre en accesorios) (nombre == 'burbujas') ? (burbujas = !!accesorios[nombre]) : (evento[nombre] = accesorios[nombre])
+    event.initEvent(tipo, burbujas, verdadero)
+    devolución compatible (evento)
+  }
+
+})(Zepto)
+
+;(función($){
+  var jsonpID = +nueva fecha(),
+      documento = ventana.documento,
+      llave,
+      nombre,
+      rguión = /<guión\b[^<]*(?:(?!<\/guión>)<[^<]*)*<\/guión>/gi,
+      scriptTypeRE = /^(?:texto|aplicación)\/javascript/i,
+      xmlTypeRE = /^(?:texto|aplicación)\/xml/i,
+      jsonType = 'aplicación/json',
+      htmlType = 'texto/html',
+      RE en blanco = /^\s*$/,
+      originAnchor = documento.createElement('a')
+
+  originAnchor.href = ventana.ubicación.href
+
+  // activa un evento personalizado y devuelve falso si se canceló
+  function triggerAndReturn(contexto, nombreEvento, datos) {
+    var evento = $.Evento(nombreEvento)
+    $(contexto).trigger(evento, datos)
+    volver !evento.isDefaultPrevented()
+  }
+
+  // activa un evento "global" de Ajax
+  función triggerGlobal (configuración, contexto, eventName, datos) {
+    if (settings.global) devuelve triggerAndReturn(contexto || documento, nombreEvento, datos)
+  }
+
+  // Número de solicitudes Ajax activas
+  $.activo = 0
+
+  función ajaxStart (configuración) {
+    if (configuración.global && $.active++ === 0) triggerGlobal(configuración, nulo, 'ajaxStart')
+  }
+  función ajaxStop (configuración) {
+    if (configuraciones.global && !(--$.active)) triggerGlobal(configuraciones, nulo, 'ajaxStop')
+  }
+
+  // desencadena un evento global extra "ajaxBeforeSend" que es como "ajaxSend" pero cancelable
+  función ajaxBeforeSend (xhr, configuración) {
+    var contexto = configuración.contexto
+    if (configuración.beforeSend.call(contexto, xhr, configuración) === false ||
+        triggerGlobal (configuración, contexto, 'ajaxBeforeSend', [xhr, configuración]) === falso)
+      falso retorno
+
+    triggerGlobal (configuración, contexto, 'ajaxSend', [xhr, configuración])
+  }
+  función ajaxSuccess (datos, xhr, configuración, diferido) {
+    var contexto = configuración.contexto, estado = 'éxito'
+    settings.success.call(contexto, datos, estado, xhr)
+    if (diferido) diferido.resolveWith(contexto, [datos, estado, xhr])
+    triggerGlobal (configuración, contexto, 'ajaxSuccess', [xhr, configuración, datos])
+    ajaxComplete (estado, xhr, configuración)
+  }
+  // escriba: "tiempo de espera", "error", "abortar", "error de análisis"
+  función ajaxError (error, tipo, xhr, configuración, diferido) {
+    var contexto = configuración.contexto
+    settings.error.call(contexto, xhr, tipo, error)
+    if (diferido) diferido.rejectWith(contexto, [xhr, tipo, error])
+    triggerGlobal(configuración, contexto, 'ajaxError', [xhr, configuración, error || tipo])
+    ajaxComplete(tipo, xhr, configuración)
+  }
+  // estado: "éxito", "no modificado", "error", "tiempo de espera", "abortar", "error de análisis"
+  función ajaxComplete (estado, xhr, configuración) {
+    var contexto = configuración.contexto
+    settings.complete.call(contexto, xhr, estado)
+    triggerGlobal (configuración, contexto, 'ajaxComplete', [xhr, configuración])
+    ajaxStop(configuración)
+  }
+
+  función ajaxDataFilter (datos, tipo, configuración) {
+    if (settings.dataFilter == vacío) devuelve datos
+    var contexto = configuración.contexto
+    volver settings.dataFilter.call(contexto, datos, tipo)
+  }
+
+  // Función vacía, utilizada como devolución de llamada predeterminada
+  función vacía() {}
+
+  $.ajaxJSONP = función (opciones, diferido){
+    if (!('escribir' en opciones)) devuelve $.ajax(opciones)
+
+    var _callbackName = opciones.jsonpCallback,
+      callbackName = ($.isFunction(_callbackName) ?
+        _nombre de devolución de llamada() : _nombre de devolución de llamada) || ('Zepto' + (jsonpID++)),
+      guión = documento.createElement('guión'),
+      devolución de llamada original = ventana [nombre de devolución de llamada],
+      datos de respuesta,
+      abortar = función (tipo de error) {
+        $(secuencia de comandos).triggerHandler('error', tipo de error || 'abortar')
+      },
+      xhr = { abortar: abortar }, abortTimeout
+
+    if (diferido) diferido.promise(xhr)
+
+    $(secuencia de comandos).on('error de carga', función(e, tipo de error){
+      clearTimeout(abortTimeout)
+      $(script).off().remove()
+
+      if (e.type == 'error' || !responseData) {
+        ajaxError(nulo, tipo de error || 'error', xhr, opciones, diferido)
+      } demás {
+        ajaxSuccess(responseData[0], xhr, opciones, diferido)
+      }
+
+      ventana[nombre de devolución de llamada] = devolución de llamada original
+      if (responseData && $.isFunction(originalCallback))
+        devolución de llamada original (datos de respuesta [0])
+
+      devolución de llamada original = datos de respuesta = indefinido
+    })
+
+    if (ajaxBeforeSend(xhr, opciones) === falso) {
+      abortar('abortar')
+      volver xhr
+    }
+
+    ventana[nombre de devolución de llamada] = función(){
+      respuestaData = argumentos
+    }
+
+    script.src = opciones.url.replace(/\?(.+)=\?/, '?$1=' + nombre de devolución de llamada)
+    documento.head.appendChild(script)
+
+    if (opciones.tiempo de espera > 0) abortTimeout = setTimeout(función(){
+      abortar('tiempo de espera')
+    }, opciones.tiempo de espera)
+
+    volver xhr
+  }
+
+  $.ajaxConfiguraciones = {
+    // Tipo de solicitud por defecto
+    tipo: 'OBTENER',
+    // Devolución de llamada que se ejecuta antes de la solicitud
+    antesEnviar: vacío,
+    // Devolución de llamada que se ejecuta si la solicitud tiene éxito
+    éxito: vacío,
+    // Devolución de llamada que se ejecuta cuando el servidor descarta el error
+    error: vacío,
+    // Devolución de llamada que se ejecuta cuando se completa la solicitud (ambos: error y éxito)
+    completo: vacío,
+    // El contexto para las devoluciones de llamada
+    contexto: nulo,
+    // Ya sea para activar eventos Ajax "globales"
+    mundial: cierto,
+    // Transporte
+    xhr: función () {
+      devolver nueva ventana.XMLHttpRequest()
+    },
+    // mapeo de tipos MIME
+    // IIS devuelve Javascript como "aplicación/x-javascript"
+    acepta: {
+      guión: 'texto/javascript, aplicación/javascript, aplicación/x-javascript',
+      json: tipo json,
+      xml: 'aplicación/xml, texto/xml',
+      html: tipo html,
+      texto: 'texto/simple'
+    },
+    // Si la solicitud es para otro dominio
+    crossDomain: falso,
+    // tiempo de espera predeterminado
+    tiempo de espera: 0,
+    // Si los datos deben serializarse en una cadena
+    datos de proceso: verdadero,
+    // Si se debe permitir que el navegador almacene en caché las respuestas GET
+    caché: cierto,
+    //Se utiliza para manejar los datos de respuesta sin procesar de XMLHttpRequest.
+    //Esta es una función de filtrado previo para desinfectar la respuesta.
+    //La respuesta sanitizada debe ser devuelta
+    filtro de datos: vacío
+  }
+
+  function mimeToDataType(mime) {
+    if (mimo) mimo = mimo.split(';', 2)[0]
+    devuelve mimo && ( mimo == htmlType ? 'html' :
+      mime == jsonType ? 'json':
+      scriptTypeRE.test(mimo) ? 'guion' :
+      xmlTypeRE.test(mimo) && 'xml' ) || 'texto'
+  }
+
+  function appendQuery(url, consulta) {
+    if (consulta == '') devolver url
+    return (url + '&' + consulta).replace(/[&?]{1,2}/, '?')
+  }
+
+  // serializa la carga útil y la agrega a la URL para las solicitudes GET
+  function serializeData(opciones) {
+    if (opciones.processData && opciones.datos && $.tipo(opciones.datos) != "cadena")
+      opciones.datos = $.param(opciones.datos, opciones.tradicional)
+    if (opciones.datos && (!opciones.tipo || opciones.tipo.toUpperCase() == 'GET' || 'jsonp' == opciones.tipo de datos))
+      opciones.url = appendQuery(opciones.url, opciones.datos), opciones.datos = indefinido
+  }
+
+  $.ajax = función(opciones){
+    configuración de var = $.extend({}, opciones || {}),
+        diferido = $.Diferido && $.Diferido(),
+        urlAnchor, hashIndex
+    for (clave en $.ajaxSettings) if (configuración[clave] === indefinido) configuración[clave] = $.ajaxSettings[clave]
+
+    ajaxStart(configuración)
+
+    if (!configuraciones.crossDomain) {
+      urlAnchor = documento.createElement('a')
+      urlAnchor.href = configuración.url
+      // limpia la URL para .href (solo IE), consulte https://github.com/madrobby/zepto/pull/1049
+      urlAnchor.href = urlAnchor.href
+      settings.crossDomain = (originAnchor.protocol + '//' + originAnchor.host) !== (urlAnchor.protocol + '//' + urlAnchor.host)
+    }
+
+    if (!configuraciones.url) configuraciones.url = ventana.ubicación.toString()
+    if ((hashIndex = configuración.url.indexOf('#')) > -1) configuración.url = configuración.url.slice(0, hashIndex)
+    serializeData(configuración)
+
+    var dataType = settings.dataType, hasPlaceholder = /\?.+=\?/.test(settings.url)
+    si (tiene marcador de posición) tipo de datos = 'jsonp'
+
+    if (configuraciones.caché === falso || (
+         (!opciones || opciones.caché !== verdadero) &&
+         ('script' == tipo de datos || 'jsonp' == tipo de datos)
+        ))
+      configuración.url = appendQuery(configuración.url, '_=' + Fecha.ahora())
+
+    if ('jsonp' == tipo de datos) {
+      si (! tiene marcador de posición)
+        configuración.url = appendQuery(configuración.url,
+          configuración.jsonp? (configuraciones.jsonp + '=?') : configuraciones.jsonp === falso ? '' : 'devolución de llamada=?')
+      devuelve $ .ajaxJSONP (configuración, diferido)
+    }
+
+    var mime = settings.accepts[tipo de datos],
+        encabezados = { },
+        setHeader = function(nombre, valor) { headers[name.toLowerCase()] = [nombre, valor] },
+        protocolo = /^([\w-]+:)\/\//.test(settings.url) ? RegExp.$1 : ventana.ubicación.protocolo,
+        xhr = configuración.xhr(),
+        nativeSetHeader = xhr.setRequestHeader,
+        abortTimeout
+
+    if (diferido) diferido.promise(xhr)
+
+    if (!settings.crossDomain) setHeader('X-Solicitado-Con', 'XMLHttpRequest')
+    setHeader('Aceptar', mimo || '*/*')
+    if (mimo = configuración.mimeType || mimo) {
+      if (mimo.indexOf(',') > -1) mimo = mimo.split(',', 2)[0]
+      xhr.overrideMimeType && xhr.overrideMimeType(mime)
+    }
+    if (configuraciones.contentType || (configuraciones.contentType !== falso && configuraciones.datos && configuraciones.type.toUpperCase() != 'GET'))
+      setHeader('Content-Type', settings.contentType || 'application/x-www-form-urlencoded')
+
+    if (configuraciones.encabezados) para (nombre en configuraciones.encabezados) setHeader(nombre, configuraciones.encabezados[nombre])
+    xhr.setRequestHeader = setHeader
+
+    xhr.onreadystatechange = función(){
+      si (xhr. estado listo == 4) {
+        xhr.onreadystatechange = vacío
+        clearTimeout(abortTimeout)
+        var resultado, error = falso
+        if ((xhr.status >= 200 && xhr.status < 300) || xhr.status == 304 || (xhr.status == 0 && protocolo == 'archivo:')) {
+          tipo de datos = tipo de datos || mimeToDataType(settings.mimeType || xhr.getResponseHeader('tipo-de-contenido'))
+
+          if (xhr.responseType == 'arraybuffer' || xhr.responseType == 'blob')
+            resultado = xhr.respuesta
+          demás {
+            resultado = xhr.responseText
+
+            intentar {
+              // http://perfectionkills.com/global-eval-cuáles-son-las-opciones/
+              // desinfectar la respuesta en consecuencia si se proporciona devolución de llamada de filtro de datos
+              resultado = ajaxDataFilter (resultado, tipo de datos, configuración)
+              if (tipo de datos == 'script') (1,eval)(resultado)
+              de lo contrario si (tipo de datos == 'xml') resultado = xhr.responseXML
+              otra cosa si (tipo de datos == 'json') resultado = BlankRE.test (resultado)? nulo: $.parseJSON (resultado)
+            } atrapar (e) { error = e }
+
+            si (error) devuelve ajaxError (error, 'parsererror', xhr, configuración, diferido)
+          }
+
+          ajaxSuccess (resultado, xhr, configuración, diferido)
+        } demás {
+          ajaxError(xhr.statusText || null, xhr.status ? 'error' : 'abortar', xhr, configuración, diferido)
+        }
+      }
+    }
+
+    si (ajaxBeforeSend(xhr, configuración) === falso) {
+      xhr.abortar()
+      ajaxError (nulo, 'abortar', xhr, configuración, diferido)
+      volver xhr
+    }
+
+    var async = 'async' en la configuración? configuración.async: verdadero
+    xhr.open(configuración.tipo, configuración.url, asíncrono, configuración.nombre de usuario, configuración.contraseña)
+
+    if (configuraciones.xhrFields) para (nombre en configuraciones.xhrFields) xhr[nombre] = configuraciones.xhrFields[nombre]
+
+    para (nombre en encabezados) nativeSetHeader.apply(xhr, encabezados[nombre])
+
+    if (configuraciones.tiempo de espera > 0) abortTimeout = setTimeout(función(){
+        xhr.onreadystatechange = vacío
+        xhr.abortar()
+        ajaxError (nulo, 'tiempo de espera', xhr, configuración, diferido)
+      }, configuración.tiempo de espera)
+
+    // evita enviar una cadena vacía (#319)
+    xhr.send(configuraciones.datos ? configuraciones.datos : nulo)
+    volver xhr
+  }
+
+  // manejar datos opcionales/argumentos de éxito
+  función parseArguments (url, datos, éxito, tipo de datos) {
+    if ($.isFunction(datos)) tipo de datos = éxito, éxito = datos, datos = indefinido
+    if (!$.isFunction(success)) dataType = éxito, éxito = indefinido
+    devolver {
+      URL: URL
+    , datos: datos
+    , éxito: éxito
+    , tipo de datos: tipo de datos
+    }
+  }
+
+  $.get = function(/* url, datos, éxito, tipo de datos */){
+    devuelve $.ajax(parseArguments.apply(nulo, argumentos))
+  }
+
+  $.post = función(/* url, datos, éxito, tipo de datos */){
+    var opciones = parseArguments.apply(nulo, argumentos)
+    opciones.tipo = 'POST'
+    devolver $.ajax(opciones)
+  }
+
+  $.getJSON = function(/* url, datos, éxito */){
+    var opciones = parseArguments.apply(nulo, argumentos)
+    opciones.tipo de datos = 'json'
+    devolver $.ajax(opciones)
+  }
+
+  $.fn.load = función (url, datos, éxito) {
+    si (!esta.longitud) devuelve esto
+    var self = esto, partes = url.split(/\s/), selector,
+        opciones = parseArguments(url, datos, éxito),
+        devolución de llamada = opciones.éxito
+    if (partes.longitud > 1) opciones.url = partes[0], selector = partes[1]
+    opciones.éxito = función(respuesta){
+      self.html(selector?
+        $('<div>').html(respuesta.reemplazar(rscript, "")).buscar(selector)
+        : respuesta)
+      callback && callback.apply(self, argumentos)
+    }
+    $.ajax(opciones)
+    devolver esto
+  }
+
+  var escape = encodeURIComponent
+
+  función serializar (parámetros, obj, tradicional, alcance) {
+    tipo de variable, matriz = $.isArray(obj), hash = $.isPlainObject(obj)
+    $.each(obj, función(clave, valor) {
+      tipo = $.tipo(valor)
+      si (alcance) clave = tradicional? alcance :
+        alcance + '[' + (hash || tipo == 'objeto' || tipo == 'matriz' ? clave: '') + ']'
+      // manejar datos en formato serializeArray()
+      if (!scope && array) params.add(value.name, value.value)
+      // recurse a objetos anidados
+      else if (tipo == "matriz" || (!tradicional && tipo == "objeto"))
+        serializar (parámetros, valor, tradicional, clave)
+      else params.add(clave, valor)
+    })
+  }
+
+  $.param = function(obj, tradicional){
+    var parámetros = []
+    params.add = función (clave, valor) {
+      si ($.esFunción(valor)) valor = valor()
+      si (valor == nulo) valor = ""
+      this.push(escape(clave) + '=' + escape(valor))
+    }
+    serializar (parámetros, obj, tradicional)
+    return params.join('&').replace(/%20/g, '+')
+  }
+})(Zepto)
+
+;(función($){
+  $.fn.serializeArray = función() {
+    var nombre, tipo, resultado = [],
+      sumar = función(valor) {
+        if (valor.paraCada) devuelve valor.paraCada(agregar)
+        resultado.push({ nombre: nombre, valor: valor })
+      }
+    if (este[0]) $.each(este[0].elementos, función(_, campo){
+      tipo = campo.tipo, nombre = campo.nombre
+      if (name && field.nodeName.toLowerCase() != 'fieldset' &&
+        !field.disabled && type != 'enviar' && type != 'reset' && type != 'button' && type != 'file' &&
+        ((escriba != 'radio' && escriba != 'casilla de verificación') || campo.marcado))
+          agregar ($ (campo). val ())
+    })
+    resultado devuelto
+  }
+
+  $.fn.serializar = función(){
+    var resultado = []
+    this.serializeArray().forEach(function(elm){
+      result.push(encodeURIComponent(elm.name) + '=' + encodeURIComponent(elm.value))
+    })
+    devolver resultado.join('&')
+  }
+
+  $.fn.submit = función (devolución de llamada) {
+    if (0 en argumentos) this.bind('enviar', devolución de llamada)
+    else if (esta.longitud) {
+      var evento = $.Evento('enviar')
+      this.eq(0).trigger(evento)
+      if (!event.isDefaultPrevented()) this.get(0).submit()
+    }
+    devolver esto
+  }
+
+})(Zepto)
+
+;(función(){
+  // getComputedStyle no debería asustarse cuando se llama
+  // sin un elemento valido como argumento
+  intentar {
+    getComputedStyle(indefinido)
+  } atrapar (e) {
+    var nativeGetComputedStyle = getComputedStyle
+    ventana.getComputedStyle = función(elemento, pseudoElemento){
+      intentar {
+        devuelve nativeGetComputedStyle (elemento, pseudoElement)
+      } atrapar (e) {
+        devolver nulo
+      }
+    }
+  }
+})()
+  volver Zepto
+}))
