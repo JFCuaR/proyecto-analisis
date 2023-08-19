@@ -1,0 +1,6 @@
+Documento: Plan de Proyecto
+Descripción: Este documento presenta una descripción detallada del proyecto, incluyendo objetivos, alcance, cronograma, recursos y presupuesto.
+
+Relevancia: El plan de proyecto establece las bases para una gestión efectiva del proyecto, ayudando a mantener el enfoque y la organización en todo momento.
+
+Para esto hicimos un diagrama de Gantt donde planificamos cada una de las actividades. 

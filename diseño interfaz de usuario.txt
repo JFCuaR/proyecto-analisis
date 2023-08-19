@@ -1,0 +1,10 @@
+
+Carpeta: Diseños de Interfaz de Usuario
+•	Las tareas existentes se muestran como elementos de la lista.
+•	Cada tarea tiene una casilla de verificación, un icono o algún indicador visual para marcar una tarea como completa.
+•	Se podría implementar una funcionalidad para marcar tareas como completadas, lo que cambiaría su estilo visual para indicar su estado.
+•	La interfaz es simple y limpia, con un enfoque en la lista de tareas y la posibilidad de agregar nuevas tareas.
+
+Relevancia: Los diseños de interfaz ayudan a visualizar la estructura y la apariencia de la aplicación, facilitando la colaboración entre diseñadores y desarrolladores.
+
+ 
